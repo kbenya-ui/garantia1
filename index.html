@@ -300,6 +300,10 @@
       <label>Últimos 5 dígitos del IMEI 1</label>
       <input type="text" id="inp-imei" placeholder="Ej: 48291" maxlength="5" inputmode="numeric" pattern="[0-9]{5}" />
     </div>
+    <div class="field">
+      <label>Nº de Seguimiento</label>
+      <input type="text" id="inp-seguimiento" placeholder="Ej: TRK-00123" />
+    </div>
     <button class="btn-main" id="btn-send" onclick="enviarGarantia()">ENVIAR MI GARANTÍA</button>
     <div class="msg-error" id="msg-error">Completá todos los campos. El IMEI debe tener exactamente 5 dígitos.</div>
     <p class="note">📩 Recibirás el certificado en tu correo en instantes.<br>Contacto: +54 11 7606-7623 (solo WP)</p>
@@ -384,15 +388,17 @@ window.addEventListener('load', () => {
 function validarEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
 
 async function enviarGarantia() {
-  const nombre  = document.getElementById('inp-nombre').value.trim();
-  const email   = document.getElementById('inp-email').value.trim();
-  const producto= document.getElementById('inp-producto').value.trim();
-  const imei    = document.getElementById('inp-imei').value.trim();
-  const errDiv  = document.getElementById('msg-error');
+  const nombre      = document.getElementById('inp-nombre').value.trim();
+  const email       = document.getElementById('inp-email').value.trim();
+  const producto    = document.getElementById('inp-producto').value.trim();
+  const imei        = document.getElementById('inp-imei').value.trim();
+  const seguimiento = document.getElementById('inp-seguimiento').value.trim();
+  const errDiv      = document.getElementById('msg-error');
 
   errDiv.style.display = 'none';
 
-  if (!nombre || !email || !producto || !imei || !validarEmail(email) || !/^\d{5}$/.test(imei)) {
+  if (!nombre || !email || !producto || !imei || !seguimiento || !validarEmail(email) || !/^\d{5}$/.test(imei)) {
+    errDiv.textContent = 'Completá todos los campos. El IMEI debe tener exactamente 5 dígitos.';
     errDiv.style.display = 'block';
     return;
   }
@@ -409,7 +415,7 @@ async function enviarGarantia() {
 
   try {
     await emailjs.send('service_5mrd1bf', 'template_ww0tv2u', {
-      nombre, email, producto, imei, fecha, vence
+      nombre, email, producto, imei, seguimiento, fecha, vence
     });
   } catch(err) {
     errDiv.textContent = 'Error al enviar. Intentá de nuevo o contactanos por WhatsApp.';
@@ -426,12 +432,13 @@ async function enviarGarantia() {
     <div class="info-item"><div class="key">Cliente</div><div class="val">${nombre}</div></div>
     <div class="info-item"><div class="key">Producto</div><div class="val">${producto}</div></div>
     <div class="info-item"><div class="key">IMEI</div><div class="val">${imei}</div></div>
+    <div class="info-item"><div class="key">Nº Seguimiento</div><div class="val">${seguimiento}</div></div>
     <div class="info-item"><div class="key">Fecha</div><div class="val">${fecha}</div></div>
     <div class="info-item"><div class="key">Vencimiento</div><div class="val">${vence}</div></div>
     <div class="info-item"><div class="key">Duración</div><div class="val">6 meses</div></div>
   `;
 
-  _pdfData = { nombre, email, producto, imei, fecha, vence };
+  _pdfData = { nombre, email, producto, imei, seguimiento, fecha, vence };
   showScreen('screen-success');
 
   btn.disabled = false;
@@ -443,11 +450,11 @@ async function enviarGarantia() {
 let _pdfData = {};
 
 function descargarPDF() {
-  const { nombre, email, producto, imei, fecha, vence } = _pdfData;
-  generarPDF(nombre, email, producto, imei, fecha, vence);
+  const { nombre, email, producto, imei, seguimiento, fecha, vence } = _pdfData;
+  generarPDF(nombre, email, producto, imei, seguimiento, fecha, vence);
 }
 
-function generarPDF(nombre, email, producto, imei, fecha, vence) {
+function generarPDF(nombre, email, producto, imei, seguimiento, fecha, vence) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const W = 210, H = 297;
@@ -477,7 +484,7 @@ function generarPDF(nombre, email, producto, imei, fecha, vence) {
   doc.setFillColor(240, 248, 240);
   doc.setDrawColor(30, 160, 60);
   doc.setLineWidth(0.7);
-  doc.roundedRect(margen, y, W - margen*2, 52, 3, 3, 'FD');
+  doc.roundedRect(margen, y, W - margen*2, 62, 3, 3, 'FD');
 
   doc.setTextColor(30, 100, 40);
   doc.setFont('helvetica', 'bold');
@@ -496,7 +503,8 @@ function generarPDF(nombre, email, producto, imei, fecha, vence) {
   const campos = [
     ['Cliente:', nombre,   'Producto:', producto],
     ['Email:',   email,    'IMEI (últ. 5):', imei],
-    ['Fecha:',   fecha,    'Vence el:', vence],
+    ['Nº Seguimiento:', seguimiento, 'Fecha:', fecha],
+    ['Vence el:', vence,  '', ''],
   ];
   campos.forEach(([k1,v1,k2,v2], i) => {
     const ry = y + 20 + i*10;
@@ -571,7 +579,7 @@ function generarPDF(nombre, email, producto, imei, fecha, vence) {
   seccion('POR POLÍTICA DE LA EMPRESA:', [
     '• No se hacen devoluciones de efectivo.',
     '• No se recibe a garantía ningún equipo con daño físico (roto, quebrado, golpeado, mojado, quemado o con manipulación no autorizada).',
-    '• La empresa no se hace responsable por daño o pérdida de información en medios de almacenamiento (memoria interna, USB, Micro SD, etc.). Es responsabilidad exclusiva del cliente.',
+    '• La empresa no se hace responsable por daño o pérdida de información en medios de almacenamiento.',
   ]);
 
   // ── Footer ──
